@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Information</title>
+</head>
+<body>
+<h1>Student Information</h1>
+<div th:if="${student}">
+    <p>hihi</p>
+</div>
+<div th:unless="${student}">
+  <p>No student found with the specified ID.</p>
+</div>
+</body>
+</html>

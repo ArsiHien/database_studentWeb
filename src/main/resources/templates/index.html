@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>burh burh lmao</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <!--css-->
+    <link th:href="@{/css/bootstrap.css}" rel="stylesheet"/>
+    <link th:href="@{/css/main.css}" rel="stylesheet"/>
+
+    <!--js-->
+    <script th:src="@{/js/bootstrap.js}"></script>
+</head>
+<body>
+    <h1>Quản lý điểm sinh viên</h1>
+
+    <a th:href="@{/v1/class/listClasses}" class="btn btn-primary">Danh sách lớp</a>
+    <a th:href="@{/v1/course/listCourse}" class="btn btn-success">Danh sách học phần</a>
+</body>
+</html>

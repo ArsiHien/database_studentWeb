@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Lmao</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <link th:href="@{/css/bootstrap.css}" rel="stylesheet"/>
+    <link th:href="@{/css/main.css}" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.6.0/font/bootstrap-icons.css">
+</head>
+<body>
+<h1>CC</h1>
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel">Chỉnh sửa điểm</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form th:action="@{/v1/section/update/{ID}/{courseId}/{secId}/{semester}/{year}(ID=${takes.student.ID}, courseId=${takes.course_id}, secId=${takes.sec_id}, semester=${takes.semester}, year=${takes.year})}"
+                      th:object="${takes}"
+                      method="post">
+                    <div class="mb-3">
+                        <label for="IDEdit" class="form-label">ID</label>
+                        <input type="text" class="form-control" id="IDEdit" readonly th:field="*{student.ID}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="course_idEdit" class="form-label">Course ID</label>
+                        <input class="form-control" id="course_idEdit" readonly th:field="*{course_id}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="sec_idEdit" class="form-label">Section ID</label>
+                        <input class="form-control" id="sec_idEdit" readonly th:field="*{sec_id}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="semesterEdit" class="form-label">Semester</label>
+                        <input class="form-control" id="semesterEdit" readonly th:field="*{semester}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="yearEdit" class="form-label">Year</label>
+                        <input class="form-control" id="yearEdit" readonly th:field="*{year}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="component_gradeEdit" class="form-label">Component Grade</label>
+                        <input type="number" step="0.1" class="form-control" id="component_gradeEdit" th:field="*{component_grade}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="final_exam_gradeEdit" class="form-label">Final Exam Grade</label>
+                        <input type="number" step="0.1" class="form-control" id="final_exam_gradeEdit" th:field="*{final_exam_grade}">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="saveButton">Save</button>
+                </form>
+<!--            </div>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->
+</body>
+</html>
