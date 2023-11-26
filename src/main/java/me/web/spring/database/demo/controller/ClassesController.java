@@ -1,6 +1,7 @@
 package me.web.spring.database.demo.controller;
 
 import me.web.spring.database.demo.model.Classes;
+import me.web.spring.database.demo.model.Student;
 import me.web.spring.database.demo.service.ClassesService;
 import me.web.spring.database.demo.service.StudentService;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -54,4 +55,25 @@ public class ClassesController {
         }
         return "Classes/successAddClasses";
     }
+
+    @GetMapping("/listStudentInClasses")
+    public String getStudentInClasses(@RequestParam("className") String className,
+                                      @RequestParam(value = "studentType", defaultValue = "all") String studentType,
+                                      @RequestParam(defaultValue = "name, asc") String[] sort,Model model) {
+        System.out.println(className);
+        System.out.println(studentType);
+        List<Student> studentInClassesList = studentService.listStudentInClassesWithSorting(className, studentType, sort[0], sort[1]);
+        for(Student student : studentInClassesList){
+            System.out.println(student);
+        }
+        model.addAttribute("size", studentInClassesList.size());
+        model.addAttribute("sortField", sort[0]);
+        model.addAttribute("sortDirection", sort[1]);
+        model.addAttribute("reverseSortDirection", sort[1].equals("asc") ? "desc" : "asc");
+        model.addAttribute("className", className);
+        model.addAttribute("studentType", studentType);
+        model.addAttribute("studentListInClasses", studentInClassesList);
+        return "Classes/listStudentInClasses";
+    }
+
 }

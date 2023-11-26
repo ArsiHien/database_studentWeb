@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>bủh</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <!--css-->
+    <link th:href="@{/css/bootstrap.css}" rel="stylesheet"/>
+    <link th:href="@{/css/main.css}" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.6.0/font/bootstrap-icons.css">
+    <style>
+        h1{
+          text-transform: uppercase;
+          text-align: center;
+        }
+        table{
+          width:100%;
+          table-layout: fixed;
+        }
+        .tbl-header{
+        margin: 0;
+        padding: 0;
+        }
+        .tbl-content{
+          height:300px;
+          overflow-x:auto;
+          margin-top: 0px;
+          margin: 0;
+          padding: 0;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+        }
+        ::-webkit-scrollbar-thumb {
+            -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+        }
+    </style>
+
+    <!--js-->
+    <script th:src="@{/js/bootstrap.js}"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $(window).on("load resize ", function() {
+                var scrollWidth = $('.tbl-content').width() - $('.tbl-content table').width();
+                $('.tbl-header').css({'padding-right':scrollWidth});
+            }).resize();
+
+           $('.btn-details').on('click', function(event) {
+    event.preventDefault();
+    var href = $(this).attr('href');
+
+    $.get(href, function(takes, status) {
+        console.log(takes);
+        // Clear the existing grades
+        $('.grade-container').empty();
+        // Loop through the grades and create new HTML elements
+        $.each(takes.grades, function(index, grade) {
+            var gradeDiv = $('<div>').addClass('mb-3');
+            var label = $('<label>').text(grade.gradeTypeName).addClass('form-label');
+            var input = $('<input>').attr({
+                type: 'number',
+                step: '0.1',
+                id: 'grade_' + index,
+                name: 'grades[' + index + '].value',
+                value: grade.value,
+                readonly: true
+            }).addClass('form-control');
+            gradeDiv.append(label, input);
+            $('.grade-container').append(gradeDiv);
+        });
+        $('#final_gradeDetails').val(takes.final_grade.toFixed(1));
+        $('#statusDetails').val(takes.status);
+    });
+    $('#detailsModel').modal('show');
+});
+        });
+    </script>
+</head>
+<body>
+<h1>Thông tin sinh viên</h1>
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-sm-6">
+            <h5>Tên: <span th:text="*{student.getLast_name + ' ' + student.getMiddle_name + ' ' + student.getFirst_name}"></span></h5>
+            <h5>Mã sinh viên: <span th:text="*{student.ID}"></span></h5>
+        </div>
+        <div class="col-sm-6">
+            <p>Điểm trung bình tích lũy hệ 4: <span th:text="${#numbers.formatDecimal(student.getGPA(), 1, 'COMMA', 2, 'POINT')}"></span></p>
+            <p>Tổng tín chỉ: <span th:text="*{student.total_credit}"></span></p>
+            <p>Tổng tín chỉ tích lũy: <span th:text="*{student.total_cumulative_credits}"></span></p>
+        </div>
+    </div>
+</div>
+
+
+<div class="tbl-header">
+    <table class="table table-bordered table-hover">
+        <thead class="table-primary">
+        <tr>
+            <th>STT</th>
+            <th>Mã MH</th>
+            <th>Môn Học</th>
+            <th>Số TC</th>
+            <th>Điểm hệ 10</th>
+            <th>Điểm chữ</th>
+            <th>Điểm hệ 4</th>
+            <th>Chi tiết</th>
+        </tr>
+        </thead>
+    </table>
+</div>
+<div class="tbl-content">
+    <table class="table table-bordered table-hover">
+        <tbody>
+        <script th:inline="javascript">
+        /*<![CDATA[*/
+            var rowCounter = /*[[${rowCounter}]]*/ 1;
+            function resetRowCounter() {
+                rowCounter = 1;
+            }
+            function incrementRowCounter() {
+                rowCounter++;
+            }
+        /*]]>*/
+
+
+        </script>
+
+        <th:block th:each="takes, iterationStatus : ${takesList}">
+            <script th:if="${takes != null and (iterationStatus.index == 0 or takes.section.year != takesList[iterationStatus.index - 1]?.section.year or !#strings.equals(takes.section.semester, takesList[iterationStatus.index - 1]?.section.semester))}"
+                    th:inline="javascript">
+            /*<![CDATA[*/
+            resetRowCounter();
+            /*]]>*/
+            </script>
+            <tr>
+                <td th:if="${takes != null and (iterationStatus.index == 0 or takes.section.year != takesList[iterationStatus.index - 1]?.section.year or !#strings.equals(takes.section.semester, takesList[iterationStatus.index - 1]?.section.semester))}"
+                    colspan="8"
+                    th:text="|HỌC KỲ ${takes.section.semester} - ${takes.section.year}|"
+                    style="font-weight: bold;">
+                </td>
+            </tr>
+
+            <tr th:if="${takes != null}">
+                <td>
+                    <script>document.write(rowCounter)</script>
+                </td>
+                <script>incrementRowCounter();</script>
+                <td th:text="${takes.section.course_id}"></td>
+                <td th:text="${takes.section.course.title}"></td>
+                <td th:text="${takes.section.course.credits}"></td>
+                <td th:text="${#numbers.formatDecimal(takes.final_grade, 0, 'COMMA', 1, 'POINT')}">GPA</td>
+                <td th:text="${takes.letter_grade}"></td>
+                <td th:text="${takes.grade_in_four_scale}"></td>
+                <td>
+                    <a th:href="@{/v1/section/getOneTakes(studentId=${takes.student_id}, sectionId=${takes.section_id})}"
+                       class="btn btn-info btn-details"><i class="bi bi-file-earmark-medical"></i></a>
+                </td>
+            </tr>
+        </th:block>
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="detailsModel" tabindex="-1" aria-labelledby="detailsFormLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsFormLabel">Điểm chi tiết môn học</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="grade-container"></div>
+                <div class="mb-3">
+                    <label>Tổng điểm</label>
+                    <input class="form-control" id="final_gradeDetails" readonly>
+                </div>
+                <div class="mb-3">
+                    <label>Trạng thái</label>
+                    <input class="form-control" id="statusDetails" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<a href="/" class="btn btn-success"><i class="bi bi-house"></i></a>
+</body>
+</html>

@@ -1,30 +1,37 @@
 package me.web.spring.database.demo.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Entity
 @Table
-@IdClass(SectionId.class)
 public class Section {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer ID;
+
     private String course_id;
-    @Id
-    private String sec_id;
-    @Id
-    private String semester;
-    @Id
+
+    private int sec_id;
+
+    private int semester;
+
     private int year;
 
+    @JsonIgnore
     @ManyToOne
-    @JoinColumn(name = "course_id")
+    @JoinColumn(name = "course_id", insertable=false, updatable=false)
     private Course course;
 
-    @OneToMany(mappedBy = "section")
-    private Set<Takes> takes = new HashSet<>();
+    @OneToMany(mappedBy = "section", cascade = CascadeType.ALL)
+    private List<Takes> takes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "section", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<GradeType> gradeTypes = new ArrayList<>();
 }
 

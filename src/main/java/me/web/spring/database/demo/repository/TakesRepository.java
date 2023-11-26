@@ -1,7 +1,6 @@
 package me.web.spring.database.demo.repository;
 
 import me.web.spring.database.demo.model.Takes;
-import me.web.spring.database.demo.model.TakesId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,45 +10,44 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface TakesRepository extends JpaRepository<Takes, TakesId> {
+public interface TakesRepository extends JpaRepository<Takes, Integer> {
 
-    @Query(value = "SELECT * FROM takes WHERE course_id = :course_id AND sec_id = :sec_id AND semester = :semester AND year = :year",
+    @Query(value = "SELECT * FROM takes WHERE section_id = :section_id",
             nativeQuery = true)
-    List<Takes> findTakesBySection(@Param("course_id") String course_id,
-                                   @Param("sec_id") String sec_id,
-                                   @Param("semester") String semester,
-                                   @Param("year") int year);
+    List<Takes> findTakesBySection(@Param("section_id") int sectionId);
 
-    @Query(value = "SELECT * FROM takes WHERE ID = :ID AND course_id = :course_id AND sec_id = :sec_id AND semester = :semester AND year = :year",
+    @Query(value = "SELECT * FROM takes WHERE student_id = :student_id AND section_id = :section_id",
             nativeQuery = true)
-    Takes findTakes(@Param("ID") int ID,
-                    @Param("course_id") String course_id,
-                    @Param("sec_id") String sec_id,
-                    @Param("semester") String semester,
-                    @Param("year") int year);
+    Takes findStudentInSection(@Param("student_id") int studentId,
+                               @Param("section_id") int sectionId);
+
+    @Query(value = "SELECT takes.* FROM takes JOIN section ON takes.section_id = section.ID " +
+            "WHERE takes.student_id = :student_id AND section.course_id = :course_id " +
+            "ORDER BY year, semester DESC",
+            nativeQuery = true)
+    List<Takes> findStudentInCourse(@Param("student_id") int studentId,
+                                    @Param("course_id") String courseId
+    );
 
     @Modifying
-    @Query(value = "INSERT INTO takes (ID, course_id, sec_id, semester, year, component_grade, final_exam_grade, status)" +
-            "VALUES (:ID, :course_id, :sec_id, :semester, :year, :component_grade, :final_exam_grade, :status)",
+    @Query(value = "INSERT INTO takes (student_id, section_id, status)" +
+            "VALUES (:student_id, :section_id, :status)",
             nativeQuery = true)
-    void addTakes(@Param("ID") int ID,
-                  @Param("course_id") String course_id,
-                  @Param("sec_id") String sec_id,
-                  @Param("semester") String semester,
-                  @Param("year") int year,
-                  @Param("component_grade") double component_grade,
-                  @Param("final_exam_grade") double final_exam_grade,
+    void addTakes(@Param("student_id") int studentId,
+                  @Param("section_id") int sectionId,
                   @Param("status") String status);
 
+    @Query(value = "SELECT takes.* FROM takes JOIN section ON takes.section_id = section.ID " +
+            "WHERE takes.student_id = :student_id ORDER BY year, semester, course_id", nativeQuery = true)
+    List<Takes> getSectionsForStudent(@Param("student_id") int studentId);
+
+    @Query(value = "SELECT * FROM takes WHERE student_id = :student_id AND section_id = :section_id", nativeQuery = true)
+    Takes findTakes(@Param("student_id") int studentId, @Param("section_id") int sectionId);
+
+    @Query(value = "SELECT * FROM takes WHERE ID = :ID", nativeQuery = true)
+    Takes findTakes(@Param("ID") int ID);
+
     @Modifying
-    @Query(value = "UPDATE takes SET component_grade = :component_grade, final_exam_grade = :final_exam_grade " +
-            "WHERE ID = :ID AND course_id = :course_id AND sec_id = :sec_id AND semester = :semester AND year = :year",
-            nativeQuery = true)
-    void updateStudentGrade(@Param("ID") int ID,
-                            @Param("course_id") String course_id,
-                            @Param("sec_id") String sec_id,
-                            @Param("semester") String semester,
-                            @Param("year") int year,
-                            @Param("component_grade") double component_grade,
-                            @Param("final_exam_grade") double final_exam_grade);
+    @Query(value = "DELETE FROM takes WHERE student_id = :student_id AND section_id = :section_id", nativeQuery = true)
+    void deleteStudentInSection(@Param("student_id") int studentId, @Param("section_id") int sectionId);
 }

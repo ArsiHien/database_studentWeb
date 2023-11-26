@@ -1,12 +1,12 @@
 package me.web.spring.database.demo.controller;
 
+import me.web.spring.database.demo.DTO.GradeDTO;
+import me.web.spring.database.demo.DTO.TakesDTO;
 import me.web.spring.database.demo.model.Course;
+import me.web.spring.database.demo.model.Grade;
 import me.web.spring.database.demo.model.Section;
 import me.web.spring.database.demo.model.Takes;
-import me.web.spring.database.demo.service.CourseService;
-import me.web.spring.database.demo.service.SectionService;
-import me.web.spring.database.demo.service.StudentService;
-import me.web.spring.database.demo.service.TakesService;
+import me.web.spring.database.demo.service.*;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.crossstore.ChangeSetPersister;
@@ -18,6 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -27,13 +28,17 @@ public class SectionController {
     private final TakesService takesService;
     private final CourseService courseService;
     private final StudentService studentService;
+    private final GradeService gradeService;
+    private final GradeTypeService gradeTypeService;
 
     @Autowired
-    public SectionController(SectionService sectionService, StudentService studentService, TakesService takesService, CourseService courseService, StudentService studentService1) {
+    public SectionController(SectionService sectionService, StudentService studentService, TakesService takesService, CourseService courseService, StudentService studentService1, GradeService gradeService, GradeTypeService gradeTypeService) {
         this.sectionService = sectionService;
         this.takesService = takesService;
         this.courseService = courseService;
         this.studentService = studentService1;
+        this.gradeService = gradeService;
+        this.gradeTypeService = gradeTypeService;
     }
 
     @GetMapping("/listSectionInCourse")
@@ -49,17 +54,24 @@ public class SectionController {
 
     @GetMapping("/addSection")
     public String addSection(@RequestParam("courseId") String courseId, Model model) {
-        if (courseId == null) System.out.println(45657899);
         Section section = new Section();
         Course course = courseService.getCourseById(courseId);
-        section.setCourse(course);
         model.addAttribute("section", section);
         model.addAttribute("course", course);
+        System.out.println(course);
+        System.out.println(section);
         return "Section/addSection";
     }
 
     @PostMapping("/addSection")
-    public String addSection(@ModelAttribute Section section, @RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes) throws IOException {
+    public String addSection(@ModelAttribute Section section,
+                             @RequestParam("courseId") String courseId,
+                             @RequestParam("file") MultipartFile file, RedirectAttributes redirectAttributes, Model model) throws IOException {
+        Course course = courseService.getCourseById(courseId);
+        section.setCourse(course);
+        course.getSections().add(section);
+        System.out.println(section);
+        System.out.println("ADD CONTROLLER");
         if (file != null && !file.isEmpty()) {
             try (InputStream inputStream = file.getInputStream()) {
                 sectionService.processSectionFile(section, inputStream);
@@ -70,53 +82,103 @@ public class SectionController {
             redirectAttributes.addFlashAttribute("alertMessage", "No file uploaded");
             return "redirect:/v1/section/addSection";
         }
+        model.addAttribute("courseId", courseId);
         return "Section/successAddSection";
     }
 
     @GetMapping("/{courseId}/{secId}/{semester}/{year}/getAll")
     public String showStudent(@PathVariable("courseId") String courseId,
-                              @PathVariable("secId") String secId,
-                              @PathVariable("semester") String semester,
+                              @PathVariable("secId") int secId,
+                              @PathVariable("semester") int semester,
                               @PathVariable("year") int year,
+                              @RequestParam(value = "studentType", defaultValue = "all") String studentType,
+                              @RequestParam(defaultValue = "name, asc") String[] sort,
                               Model model) throws ChangeSetPersister.NotFoundException {
         Section section = sectionService.findSection(courseId, secId, semester, year);
-        List<Takes> takesList = takesService.findTakesBySection(section);
+//        List<Takes> takesList = takesService.findTakesBySection(section);
+        List<Takes> takesList = takesService.findTakesBySectionWithSorting(section, studentType, sort[0], sort[1]);
+        System.out.println(sort[0] +  " " + sort[1]);
+        model.addAttribute("size", takesList.size());
         model.addAttribute("section", section);
         model.addAttribute("takesList", takesList);
+        model.addAttribute("sortField", sort[0]);
+        model.addAttribute("sortDirection", sort[1]);
+        model.addAttribute("reverseSortDirection", sort[1].equals("asc") ? "desc" : "asc");
+        model.addAttribute("studentType", studentType);
         return "Section/listStudentInSection";
     }
 
     @RequestMapping("getOneTakes")
     @ResponseBody
-    public Takes getOneTakes(@RequestParam("ID") int ID,
-                             @RequestParam("courseId") String course_id,
-                             @RequestParam("secId") String sec_id,
-                             @RequestParam("semester") String semester,
-                             @RequestParam("year") int year) {
-        Takes takes = takesService.findTakes(ID, course_id, sec_id, semester, year);
-        return takes;
+    public TakesDTO getOneStudentInSection(@RequestParam("studentId") int studentId,
+                                           @RequestParam("sectionId") int sectionId) {
+        System.out.println("Here is get 1 takes");
+        Takes takes = takesService.findStudentInSection(studentId, sectionId);
+        System.out.println("lmao");
+        System.out.println(takes.getStudent());
+        System.out.println(takes.getSection());
+        List<GradeDTO> gradeDTOS = new ArrayList<>();
+        for (Grade grade : takes.getGrades()) {
+            System.out.println(grade.getGradeType());
+            gradeDTOS.add(new GradeDTO(grade.getID(), grade.getGrade_type_id(), grade.getTakes_id(), grade.getValue(), grade.getGradeType().getName()));
+        }
+
+        TakesDTO takesDTO = new TakesDTO(takes.getID(), takes.getStudent_id(),
+                takes.getSection_id(), takes.getStatus(), takes.getFinal_grade(), takes.getGrade_in_four_scale(),
+                takes.getLetter_grade(), gradeDTOS);
+        return takesDTO;
     }
 
     @PostMapping(value = "/updateStudentGrade")
     public String updateStudentGrade(Takes takes) {
-        takesService.updateStudentGrade(takes);
-        return "redirect:/v1/section/" + takes.getCourse_id() + "/" + takes.getSec_id() + "/" + takes.getSemester() + "/" + takes.getYear() + "/getAll";
+        Takes tmpTakes = takesService.findTakes(takes.getID());
+        for (int i = 0; i < takes.getGrades().size(); i++) {
+            tmpTakes.getGrades().get(i).setValue(takes.getGrades().get(i).getValue());
+        }
+        gradeService.updateStudentGrade(tmpTakes);
+        return "redirect:/v1/section/" + tmpTakes.getSection().getCourse_id() + "/" +
+                tmpTakes.getSection().getSec_id() + "/" +
+                tmpTakes.getSection().getSemester() + "/" +
+                tmpTakes.getSection().getYear() + "/getAll";
+    }
+
+    @GetMapping("/delete")
+    public String deleteStudent(@RequestParam("studentId") int studentId, @RequestParam("sectionId") int sectionId){
+        System.out.println("Here is delete method");
+        Section section = sectionService.findSection(sectionId);
+        takesService.deleteStudentInSection(studentId, sectionId);
+        System.out.println(studentId + " " + sectionId);
+        return "redirect:/v1/section/" + section.getCourse_id() + "/" +
+                section.getSec_id() + "/" +
+                section.getSemester() + "/" +
+                section.getYear() + "/getAll";
     }
 
     @GetMapping("/addStudent")
-    public String addStudent(
-                             Model model) {
+    public String addStudentToSection(@RequestParam("sectionId") String sectionId,
+                                      Model model) throws ChangeSetPersister.NotFoundException {
+        Section section = sectionService.findSection(Integer.parseInt(sectionId));
+        model.addAttribute("section", section);
         List<Integer> idList = studentService.listStudentId();
-        for(Integer i : idList){
+        for (Integer i : idList) {
             System.out.println(i);
         }
         model.addAttribute("idList", idList);
+        int numberOfGradeTypes = gradeTypeService.getNumberOfGradeTypesInSection(Integer.parseInt(sectionId));
+        model.addAttribute("numberOfGradeTypes", numberOfGradeTypes);
         return "Section/addStudent";
     }
 
-    @PostMapping(value = "/addStudent")
-    public String addStudentToSection(String id, @ModelAttribute Section section){
-//        takesService.addTakes();
-        return "redirect:/v1/section/" + section.getCourse_id() + "/" + section.getSec_id() + "/" + section.getSemester() + "/" + section.getYear() + "/getAll";
+    @PostMapping("/addStudent")
+    public String addStudentToSection(@RequestBody Takes takes) {
+        takes.setSection(sectionService.findSection(takes.getSection_id()));
+        takesService.addOneTakes(takes);
+        System.out.println("In sectionController: " + takes.getID());
+        gradeService.addTakesGrade(takes);
+        return "redirect:/v1/section/" +
+                takes.getSection().getCourse_id() + "/" +
+                takes.getSection().getSec_id() + "/" +
+                takes.getSection().getSemester() + "/" +
+                takes.getSection().getYear() + "/getAll";
     }
 }

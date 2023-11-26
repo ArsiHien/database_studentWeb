@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>lmao</title>
+    <title>Danh sách lớp</title>
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
@@ -23,8 +23,8 @@
     <tbody>
     <tr th:each="class : ${classesList}">
         <td><a class="link-offset-2 link-underline link-underline-opacity-0"
-               th:href="@{/v1/student/listStudentInClasses(className = ${class.getName()})}"
-               th:text="*{class.getName()}">Tên</a></td>
+               th:href="@{/v1/class/listStudentInClasses(className = ${class.getName()})}"
+               th:text="*{class.getName()}">Tên lớp</a></td>
         <td><span th:text="*{class.getAdvisor()}"> Cố vấn học tập </span></td>
     </tr>
     </tbody>

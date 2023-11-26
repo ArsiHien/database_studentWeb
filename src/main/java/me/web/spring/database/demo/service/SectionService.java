@@ -1,50 +1,81 @@
 package me.web.spring.database.demo.service;
 
 import jakarta.transaction.Transactional;
-import me.web.spring.database.demo.model.Section;
-import me.web.spring.database.demo.model.SectionId;
-import me.web.spring.database.demo.model.Takes;
+import me.web.spring.database.demo.model.*;
 import me.web.spring.database.demo.repository.SectionRepository;
-import me.web.spring.database.demo.repository.TakesRepository;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class SectionService {
     private final SectionRepository sectionRepository;
     private final TakesService takesService;
+    private final GradeService gradeService;
+    private final GradeTypeService gradeTypeService;
+    private final StudentService studentService;
 
     @Autowired
-    public SectionService(SectionRepository sectionRepository, TakesRepository takesRepository, TakesService takesService) {
+    public SectionService(SectionRepository sectionRepository, TakesService takesService, GradeService gradeService, GradeTypeService gradeTypeService, StudentService studentService) {
         this.sectionRepository = sectionRepository;
         this.takesService = takesService;
+        this.gradeService = gradeService;
+        this.gradeTypeService = gradeTypeService;
+        this.studentService = studentService;
     }
 
     public List<Section> listSectionInCourse(String courseId) {
         return sectionRepository.listSectionInCourse(courseId);
     }
 
-    public Section findSection(String courseId, String secId, String semester, int year) throws ChangeSetPersister.NotFoundException {
-        return sectionRepository.findById(new SectionId(courseId, secId, semester, year)).orElseThrow(() -> new ChangeSetPersister.NotFoundException());
+    public Section findSection(int sectionId) {
+        Section section = sectionRepository.findSection(sectionId);
+        section.getGradeTypes().sort(GradeType::compareTo);
+        return section;
+    }
+
+    public Section findSection(String courseId, int secId, int semester, int year) {
+        Section section =  sectionRepository.findSection(courseId, secId, semester, year);
+        section.getGradeTypes().sort(GradeType::compareTo);
+        return section;
+    }
+
+    public Section findSection(Section section){
+        return findSection(section.getCourse().getCourse_id(), section.getSec_id(), section.getSemester(), section.getYear());
     }
 
     @Transactional
-    public void addSection(Section section){
-        sectionRepository.addSection(section.getCourse_id(), section.getSec_id(), section.getSemester(), section.getYear());
+    public void addSection(Section section) {
+        sectionRepository.addSection(section.getCourse().getCourse_id(), section.getSec_id(), section.getSemester(), section.getYear());
+        System.out.println(section.getID());
+        System.out.println(section.getCourse().getCourse_id());
+        System.out.println(section.getSec_id());
+        System.out.println("done");
     }
 
     @Transactional
     public void processSectionFile(Section section, InputStream inputStream) throws IOException, InvalidFormatException {
+        addSection(section);
+        section.setID(findSection(section).getID());
+        System.out.println(section);
+        for (GradeType gradeType : section.getGradeTypes()) {
+            gradeType.setSection_id(section.getID());
+            System.out.println(gradeType.getSection_id());
+            System.out.println(gradeType.getName());
+            System.out.println(gradeType.getRatio());
+            gradeTypeService.addGradeType(gradeType);
+        }
+        int numberOfGradeTypes = section.getGradeTypes().size();
+        System.out.println(section);
         Workbook workbook = WorkbookFactory.create(inputStream);
         Sheet sheet = workbook.getSheetAt(0);
         boolean headerRowFound = false;
@@ -54,16 +85,28 @@ public class SectionService {
                 continue;
             }
             if (headerRowFound) {
-                int id = (int) row.getCell(1).getNumericCellValue();
-//                String name = row.getCell(2).getStringCellValue();
-                double component_grade = row.getCell(3).getNumericCellValue();
-                double final_exam_grade = row.getCell(4).getNumericCellValue();
-                String status = row.getCell(5).getStringCellValue();
-                Takes takes = new Takes(id, section.getCourse_id(), section.getSec_id(), section.getSemester(), section.getYear(), component_grade, final_exam_grade, status);
-                section.getTakes().add(takes);
+                int studentId = (int) row.getCell(1).getNumericCellValue();
+                Student student = studentService.getStudentById(studentId);
+                if (student != null) {
+                    System.out.println("good");
+                    Takes takes = new Takes(studentId, section.getID(), student, section);
+                    takesService.addOneTakes(takes);
+                    System.out.println("added takes");
+                    List<Grade> gradeList = new ArrayList<>();
+                    for (int i = 0; i < numberOfGradeTypes; i++) {
+                        double gradeValue = (row.getCell(i + 3).getNumericCellValue());
+                        Grade grade = new Grade(gradeValue, section.getGradeTypes().get(i).getID(), takes.getID());
+                        gradeList.add(grade);
+                    }
+                    takes.setGrades(gradeList);
+                    System.out.println(takes);
+                    gradeService.addTakesGrade(takes);
+                    System.out.println("added grade");
+                } else {
+                    // Handle the case where the student is not found in the database
+                    System.out.println(studentId + "lmao");
+                }
             }
         }
-        addSection(section);
-        takesService.addTakes(section);
     }
 }

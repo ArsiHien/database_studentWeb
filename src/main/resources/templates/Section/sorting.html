@@ -1,0 +1,10 @@
+<th th:fragment="sorting(field, label)">
+    <a class="link-offset-2 link-underline link-underline-opacity-0"
+       th:href="@{${'/v1/section/' + section.course_id + '/' + section.sec_id + '/' + section.semester + '/' + section.year + '/getAll' + (sortField!=null ? '?sort=' + field + ',' + (sortField == field ? reverseSortDirection : sortDirection) : '')}}">
+        [[${label}]]
+    </a>
+
+    <a th:if="${sortField == field}" href="#" onclick="toggleSortDirection('${field}')">
+        <i th:class="${sortDirection == 'asc' ? 'bi bi-sort-up-alt' : 'bi bi-sort-down'}"></i>
+    </a>
+</th>

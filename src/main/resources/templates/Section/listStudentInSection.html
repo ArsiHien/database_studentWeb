@@ -7,93 +7,104 @@
     <!-- CSS -->
     <link th:href="@{/css/bootstrap.css}" rel="stylesheet"/>
     <link th:href="@{/css/main.css}" rel="stylesheet"/>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.6.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.2/font/bootstrap-icons.min.css">
+    <style>
+        table{
+          width:100%;
+          table-layout: fixed;
+        }
+        .tbl-header{
+            margin: 0;
+            padding: 0;
+        }
+        .tbl-content{
+            height:450px;
+            overflow-x:auto;
+            margin-top: 0px;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
 
     <!-- JS -->
     <script th:src="@{/js/bootstrap.js}"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script th:inline="javascript">
-        $(document).ready(function() {
-            $('.table .btn-edit').on('click', function(event) {
-                 event.preventDefault();
-                var href = $(this).attr('href');
+    $(document).ready(function() {
+        $(window).on("load resize ", function() {
+                var scrollWidth = $('.tbl-content').width() - $('.tbl-content table').width();
+                $('.tbl-header').css({'padding-right':scrollWidth});
+            }).resize();
+        $('.table .btn-edit').on('click', function(event) {
+            event.preventDefault();
+            var href = $(this).attr('href');
 
-                $.get(href, function(takes, status) {
-                    $('#studentIDEdit').val(takes.id);
-                    $('#studentNameEdit').val(takes.student.getLast_name + ' ' + takes.student.getMiddle_name + ' ' + takes.student.getFirst_name);
-                    $('#component_gradeEdit').val(takes.component_grade);
-                    $('#final_exam_gradeEdit').val(takes.final_exam_grade);
-                    $('#courseIdEdit').val(takes.course_id);
-                    $('#secIdEdit').val(takes.sec_id);
-                    $('#semesterEdit').val(takes.semester);
-                    $('#yearEdit').val(takes.year);
+            // Fetch takes information
+            $.get(href, function(takes, status) {
+                console.log('Received takes:', takes);
+                // Fetch student information
+                $.get('/v1/student/' + takes.student_id, function(student, status) {
+                    console.log('Received student:', student);
+
+                    var studentID = student.id;
+                    var studentName = student.last_name + ' ' + student.middle_name + ' ' + student.first_name;
+
+                    $('#studentIDEdit').val(studentID);
+                    $('#studentNameEdit').val(studentName);
                 });
+                $('#takesID').val(takes.id);
+                // Iterate over grades
+                $.each(takes.grades, function(index, grade) {
+                    // Populate grade value
+                    $('#grade_' + index).val(grade.value);
+                });
+
+                // Show the modal
                 $('#editModal').modal('show');
             });
-            $('#editForm').on('submit', function(event) {
-                event.preventDefault();
-                var form = $(this);
-                var url = form.attr('action');
-                var data = form.serialize();
-                $.ajax({
-                    type: 'POST',
-                    url: url,
-                    data: data,
-                    success: function(response) {
-                        location.reload();
-                        alert('Success updating grade');
-                    },
-                    error: function(xhr) {
-                        alert('Error updating grade');
-                    }
-                });
-            });
+        });
 
-            $('#studentID').on('input', function() {
-                var input = $(this);
-                var list = input.attr('list');
-                var options = $('#' + list + ' option');
-                var hiddenInput = $('#' + input.attr('id') + '-hidden');
-                var inputValue = input.val();
-
-                hiddenInput.val(inputValue);
-
-                options.each(function() {
-                    var option = $(this);
-
-                    if (option.text() === inputValue) {
-                        hiddenInput.val(option.attr('data-value'));
-                        return false; // Exit the loop early
-                    }
-                });
-                // Make AJAX request to fetch student info
-                $.get('/v1/student/listStudentHaveIdStartBy', { id: studentIDAdd }, function(data) {
-                    if (data.length > 0) {
-                        var studentID = data[0];
-                        // Populate student info fields
-                        $('#studentName').val(data[0].studentName);
-                        $('#courseName').val(data[0].courseName);
-                        $('#sectionID').val(data[0].sectionID);
-                    } else {
-                        // Clear student info fields
-                        $('#studentName').val('');
-                        $('#courseName').val('');
-                        $('#sectionID').val('');
-                    }
-                });
-            });
-
-            // Populate the datalist options dynamically with student IDs
-            $.get('/v1/student/listStudentHaveIdStartBy', function(data) {
-                var studentList = $('#studentList');
-                studentList.empty(); // Clear existing options
-
-                // Add options for each student ID
-                for (var i = 0; i < data.length; i++) {
-                    studentList.append($('<option></option>').attr('value', data[i].studentID));
+        $('#editForm').on('submit', function(event) {
+            event.preventDefault();
+            var form = $(this);
+            var url = form.attr('action');
+            var data = form.serialize();
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: data,
+                success: function(response) {
+                    location.reload();
+                    alert('Success updating grade');
+                },
+                error: function(xhr) {
+                    alert('Error updating grade');
                 }
             });
         });
+
+        $('.deleteButton').on('click',function(event) {
+            event.preventDefault();
+            var href = $(this).attr('href');
+            $('#deleteModal #delRef').attr('href', href);
+            $('#deleteModal').modal('show');
+        });
+
+        function toggleSortDirection(field) {
+        var currentSortField = /*[[${sortField}]]*/ '';
+        var newSortDirection;
+
+        if (currentSortField === field) {
+            newSortDirection = /*[[${reverseSortDirection}]]*/ '';
+        } else {
+            newSortDirection = /*[[${defaultSortDirection}]]*/ 'asc'; // Set your default sort direction here
+        }
+
+        window.location.href = /*[[@{'/v1/section/' + section.course_id + '/' + section.sec_id + '/' + section.semester + '/' + section.year + '/getAll'}]]*/ + '?sort=' + field + ',' + newSortDirection;
+    }
+    });
+
+
     </script>
 </head>
 <body>
@@ -101,39 +112,68 @@
         th:text="${section.getCourse.getTitle} + ' ' + ${section.getCourse_id} + ' ' + ${section.getSec_id}"></span>
 </h1>
 
-<table class="table table-bordered table-hover">
-    <thead>
-    <tr>
-        <th>Mã sinh viên</th>
-        <th>Họ tên</th>
-        <th>Lớp quản lý</th>
-        <th>Điểm giữa kỳ</th>
-        <th>Điểm thi cuối kỳ</th>
-        <th>Tổng điểm</th>
-        <th>Trạng thái</th>
-        <th>Chỉnh sửa</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="takes : ${takesList}">
-        <td><span th:text="${takes.getID()}"> Mã sinh viên </span></td>
-        <td><span
-                th:text="${takes.getStudent.getLast_name + ' ' + takes.getStudent.getMiddle_name + ' ' + takes.getStudent.getFirst_name}"> Họ tên</span>
-        </td>
-        <td th:text="${takes.getStudent.getClass_name}"></td>
-        <td th:text="${takes.getComponent_grade}"></td>
-        <td th:text="${takes.getFinal_exam_grade}"></td>
-        <td th:text="${takes.getFinal_grade}"></td>
-        <td th:text="${takes.getStatus}"></td>
-        <td>
-            <a th:href="@{/v1/section/getOneTakes(ID=${takes.getID()}, courseId=${takes.getCourse_id()}, secId=${takes.getSec_id()}, semester=${takes.getSemester()}, year=${takes.getYear()})}"
-               class="btn btn-info btn-edit"><i class="bi bi-pencil-square"></i></a>
-        </td>
-    </tr>
-    </tbody>
-</table>
+<div class="container">
+    <form th:action="@{'/v1/section/' + ${section.course_id} + '/' + ${section.sec_id} + '/' + ${section.semester} + '/' + ${section.year} + '/getAll'}"
+          method="get">
+        <div class="form-group">
+            <label for="studentType">Kết quả tổng kết</label>
+            <select class="form-control" id="studentType" name="studentType">
+                <option value="all">Tất cả</option>
+                <option value="excellent">A+</option>
+                <option value="good">B trở lên</option>
+                <option value="poor">Trượt môn</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
+<br>
+<p><i>Danh sách có <span th:text="${size}"></span> sinh viên.</i></p>
+<div class="tbl-header">
+    <table class="table table-bordered">
+        <thead class="table-primary">
+        <tr>
+            <th>Mã sinh viên</th>
+            <th th:replace="~{Section/sorting :: sorting('name', 'Họ tên')}">Họ tên</th>
+            <th>Lớp quản lý</th>
+            <th th:each="gradeType : ${section.gradeTypes}">
+                <div th:include="~{Section/sorting :: sorting(${gradeType.name}, ${gradeType.name})}"></div>
+            </th>
+            <th th:replace="~{Section/sorting :: sorting('final_grade', 'Tổng điểm')}">Tổng điểm</th>
+            <th>Trạng thái</th>
+            <th>Chỉnh sửa</th>
+            <th>Xóa</th>
+        </tr>
+        </thead>
+    </table>
+</div>
+<div class="tbl-content">
+    <table class="table table-bordered table-hover">
+        <tbody>
+        <tr th:each="takes : ${takesList}">
+            <td><span th:text="${takes.getStudent_id}"> Mã sinh viên </span></td>
+            <td><span
+                    th:text="${takes.getStudent.getLast_name + ' ' + takes.getStudent.getMiddle_name + ' ' + takes.getStudent.getFirst_name}"> Họ tên</span>
+            </td>
+            <td th:text="${takes.getStudent.getClass_name}"></td>
+            <td th:each="grade : ${takes.getGrades}" th:text="${grade.value}"></td>
+            <td th:text="${#numbers.formatDecimal(takes.getFinal_grade, 0, 'COMMA', 1, 'POINT')}"></td>
+            <td th:text="${takes.getStatus}"></td>
+            <td>
+                <a th:href="@{/v1/section/getOneTakes(studentId=${takes.student_id}, sectionId=${takes.section_id})}"
+                   class="btn btn-info btn-edit"><i class="bi bi-pencil-square"></i></a>
+            </td>
+            <td>
+                <a th:href="@{/v1/section/delete(studentId=${takes.student_id}, sectionId=${takes.section_id})}"
+                   class="btn btn-danger deleteButton"><i class="bi bi-trash3"></i></a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<!--/v1/section/delete(studentId=${takes.student_id}, sectionId=${takes.section_id})-->
 
-<!-- Modal -->
+<!--Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editFormLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -145,28 +185,27 @@
                 <form method="post" id="editForm" th:action="@{/v1/section/updateStudentGrade}">
                     <div class="mb-3">
                         <label for="studentIDEdit" class="form-label">Mã sinh viên</label>
-                        <input type="text" class="form-control" id="studentIDEdit" name="ID" readonly>
+                        <input type="text" class="form-control" id="studentIDEdit" name="studentID" readonly>
                     </div>
                     <div class="mb-3">
                         <label for="studentNameEdit" class="form-label">Họ tên</label>
                         <input type="text" class="form-control" id="studentNameEdit" name="studentName" readonly>
                     </div>
-                    <div class="mb-3">
-                        <label for="component_gradeEdit" class="form-label">Điểm thành phần</label>
-                        <input type="number" step="0.1" class="form-control" id="component_gradeEdit"
-                               name="component_grade">
+                    <input type="hidden" id="takesID" name="ID">
+
+                    <!-- Iterate over grade types -->
+                    <div th:each="gradeType, gradeTypeStat : ${section.gradeTypes}">
+                        <div class="mb-3">
+                            <label th:text="${gradeType.name}" class="form-label"></label>
+                            <input type="number" step="0.1" class="form-control"
+                                   th:id="'grade_' + ${gradeTypeStat.index}"
+                                   th:name="'grades[' + ${gradeTypeStat.index} + '].value'">
+                            <!-- Hidden input for grade type ID -->
+                            <input type="hidden" th:name="'grades[' + ${gradeTypeStat.index} + '].grade_type_id'"
+                                   th:value="${gradeType.ID}">
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="final_exam_gradeEdit" class="form-label">Điểm thi học kì</label>
-                        <input type="number" step="0.1" class="form-control" id="final_exam_gradeEdit"
-                               name="final_exam_grade">
-                    </div>
-                    <input type="hidden" id="courseIdEdit" name="course_id">
-                    <input type="hidden" id="secIdEdit" name="sec_id">
-                    <input type="hidden" id="semesterEdit" name="semester">
-                    <div style="display: none;">
-                        <input type="number" id="yearEdit" name="year">
-                    </div>
+
                     <button type="submit" class="btn btn-primary">Save</button>
                     <button type="button" class="btn btn-secondary btn-cancel" data-bs-dismiss="modal">Cancel</button>
                 </form>
@@ -175,45 +214,27 @@
     </div>
 </div>
 
+<!--Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteFormLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteFormLabel">Xóa sinh viên</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Chắc chắn xóa sinh viên này khỏi lớp học?</p>
+            </div>
+            <div class="modal-footer">
+                <a href="" class="btn btn-primary" id="delRef">Chắc chắn, xóa</a>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-<a th:href="@{/v1/section/addStudent}" class="btn btn-primary">Add</a>
-<!--<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="editFormLabel" aria-hidden="true">-->
-<!--    <div class="modal-dialog">-->
-<!--        <div class="modal-content">-->
-<!--            <div class="modal-header">-->
-<!--                <h5 class="modal-title" id="addFormLabel">Thêm sinh viên</h5>-->
-<!--                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>-->
-<!--            </div>-->
-<!--            <div class="modal-body">-->
-<!--                <form method="post" id="addForm" th:action="@{/v1/section/add}">-->
-<!--                    <div class="form-group">-->
-<!--                        <label for="studentIDAdd">Student ID</label>-->
-<!--                        <input type="text" id="studentIDAdd" name="id" list="studentList" class="form-control" required>-->
-<!--                        <datalist id="studentList">-->
-<!--                            <select>-->
-<!--                                <option th:each="row : ${studentList}"></option>-->
-<!--                            </select>-->
-<!--                        </datalist>-->
-<!--                    </div>-->
-<!--&lt;!&ndash;                    <div class="form-group">&ndash;&gt;-->
-<!--&lt;!&ndash;                        <label for="studentName">Student Name</label>&ndash;&gt;-->
-<!--&lt;!&ndash;                        <input type="text" id="studentName" class="form-control" readonly>&ndash;&gt;-->
-<!--&lt;!&ndash;                    </div>&ndash;&gt;-->
-<!--&lt;!&ndash;                    <div class="form-group">&ndash;&gt;-->
-<!--&lt;!&ndash;                        <label for="courseName">Course Name</label>&ndash;&gt;-->
-<!--&lt;!&ndash;                        <input type="text" id="courseName" class="form-control" readonly>&ndash;&gt;-->
-<!--&lt;!&ndash;                    </div>&ndash;&gt;-->
-<!--&lt;!&ndash;                    <div class="form-group">&ndash;&gt;-->
-<!--&lt;!&ndash;                        <label for="sectionID">Section ID</label>&ndash;&gt;-->
-<!--&lt;!&ndash;                        <input type="text" id="sectionID" class="form-control" readonly>&ndash;&gt;-->
-<!--&lt;!&ndash;                    </div>&ndash;&gt;-->
-<!--&lt;!&ndash;                    <button type="submit" class="btn btn-primary">Save</button>&ndash;&gt;-->
-<!--&lt;!&ndash;                    <button type="button" class="btn btn-secondary btn-cancel" data-bs-dismiss="modal">Cancel</button>&ndash;&gt;-->
-<!--                </form>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
-<!--</div>-->
+<a th:href="@{/v1/section/addStudent(sectionId=${section.ID})}"
+   class="btn btn-primary">Thêm sinh viên</a>
 
 <a href="/" class="btn btn-success"><i class="bi bi-house"></i></a>
 

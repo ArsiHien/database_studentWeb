@@ -11,11 +11,22 @@
 
     <!--js-->
     <script th:src="@{/js/bootstrap.js}"></script>
+
+    <!--icons-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 </head>
 <body>
-    <h1>Quản lý điểm sinh viên</h1>
+<div class="container">
+    <h1 class="text-center mt-4">Quản lý điểm sinh viên</h1>
 
-    <a th:href="@{/v1/class/listClasses}" class="btn btn-primary">Danh sách lớp</a>
-    <a th:href="@{/v1/course/listCourse}" class="btn btn-success">Danh sách học phần</a>
+    <div class="d-flex justify-content-center mt-5 flex-column align-items-center">
+        <a th:href="@{/v1/class/listClasses}" class="btn btn-primary mr-2 mt-3">
+            <i class="fa fa-list"></i> Danh sách lớp
+        </a>
+        <a th:href="@{/v1/course/listCourse}" class="btn btn-success mt-3">
+            <i class="fa fa-book"></i> Danh sách học phần
+        </a>
+    </div>
+</div>
 </body>
 </html>

@@ -20,12 +20,18 @@ public interface StudentRepository extends JpaRepository<Student, Integer> {
                     @Param("first_name") String first_name,
                     @Param("class_name") String class_name);
 
-
+    @Query(nativeQuery = true)
     List<Student> listStudentInClasses(@Param("class_name") String class_name);
-
-    @Query(value = "SELECT ID FROM student WHERE ID LIKE :id%", nativeQuery = true)
-    List<Integer> listStudentHaveIdStartBy(@Param("id") String id);
 
     @Query(value = "SELECT ID FROM student", nativeQuery = true)
     List<Integer> listStudentId();
+
+    @Query(value = "SELECT * FROM student WHERE ID = :student_id", nativeQuery = true)
+    Student findStudentById(@Param("student_id") int studentId);
+
+    @Query(nativeQuery = true)
+    Student getStudentInfo(@Param("student_id") int studentId);
+
+    @Query(value = "SELECT * FROM student where class_name = :class_name", nativeQuery = true)
+    List<Student> listStudentInClassesHaveNotStudy(@Param("class_name") String className);
 }

@@ -1,77 +1,184 @@
 package me.web.spring.database.demo.service;
 
 import jakarta.transaction.Transactional;
+import me.web.spring.database.demo.model.Grade;
+import me.web.spring.database.demo.model.GradeType;
 import me.web.spring.database.demo.model.Section;
 import me.web.spring.database.demo.model.Takes;
 import me.web.spring.database.demo.repository.TakesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class TakesService {
     private final TakesRepository takesRepository;
+    private final GradeService gradeService;
+    private final GradeTypeService gradeTypeService;
 
     @Autowired
-    public TakesService(TakesRepository takesRepository) {
+    public TakesService(TakesRepository takesRepository, GradeService gradeService, GradeTypeService gradeTypeService) {
         this.takesRepository = takesRepository;
+        this.gradeService = gradeService;
+        this.gradeTypeService = gradeTypeService;
     }
 
-    public List<Takes> findTakesBySection(Section section) {
-        List<Takes> takesList = takesRepository.findTakesBySection(section.getCourse_id(), section.getSec_id(), section.getSemester(), section.getYear());
+    public List<Takes> findTakesBySection(Section section, String studentType) {
+        List<Takes> takesList = takesRepository.findTakesBySection(section.getID());
         for (Takes takes : takesList) {
-            takes.calculateFinalGrade();
+            takes.setFinal_grade(gradeService.calculateFinalGrade(takes));
+            takes.getGrades().sort(Grade::compareTo);
+        }
+        switch (studentType) {
+            case "excellent" -> takesList.removeIf(takes -> takes.getFinal_grade() < 9);
+            case "good" -> takesList.removeIf(takes -> takes.getFinal_grade() < 7);
+            case "poor" -> takesList.removeIf(takes -> takes.getFinal_grade() >= 4);
         }
         return takesList;
     }
 
-    public Takes findTakes(int ID,
-                           String course_id,
-                           String sec_id,
-                           String semester,
-                           int year) {
-        return takesRepository.findTakes(ID, course_id, sec_id, semester, year);
+    public List<Takes> findTakesBySectionWithSorting(Section section, String studentType, String sortField, String sortDirection) {
+        List<Takes> takesList = findTakesBySection(section, studentType);
+
+        Comparator<Takes> comparator = getTakesComparator(section.getID(),sortField, sortDirection);
+
+        takesList.sort(comparator);
+
+        return takesList;
+    }
+
+    private Comparator<Takes> getTakesComparator(int sectionId, String sortField, String sortDirection) {
+        // Comparator logic for different fields
+        List<GradeType> gradeTypeList = gradeTypeService.getGradeTypesInSection(sectionId);
+        Comparator<Takes> comparator = null;
+
+        for (GradeType gradeType : gradeTypeList) {
+            if (gradeType.getName().equals(sortField)) {
+                comparator = Comparator.comparing(takes -> takes.getGrades().stream()
+                        .filter(grade -> grade.getGrade_type_id() == gradeType.getID())
+                        .findFirst()
+                        .map(Grade::getValue)
+                        .orElse(Double.NaN));
+                break;
+            }
+        }
+
+        if (comparator == null) {
+            comparator = switch (sortField) {
+                case "final_grade" -> Comparator.comparing(Takes::getFinal_grade);
+                case "status" -> Comparator.comparing(Takes::getStatus);
+                default -> Comparator.comparing(takes -> takes.getStudent().getFirst_name());
+            };
+        }
+
+        if ("desc".equals(sortDirection)) {
+            comparator = comparator.reversed();
+        }
+        return comparator;
+    }
+
+
+    public Takes findStudentInSection(int studentId, int sectionId) {
+        Takes takes =  takesRepository.findStudentInSection(studentId, sectionId);
+        takes.getGrades().sort(Grade::compareTo);
+        takes.setFinal_grade(gradeService.calculateFinalGrade(takes));
+        return takes;
+    }
+
+    public Takes findTakes(Takes takes){
+        System.out.println("in findTakes: " + takes.getStudent_id() + " " + takes.getSection_id());
+        return takesRepository.findTakes(takes.getStudent_id(), takes.getSection_id());
+    }
+
+    public Takes findTakes(int ID){
+        return takesRepository.findTakes(ID);
     }
 
     @Transactional
-    public void addTakes(Section section) {
+    public void addAllTakesInSection(Section section) {
         for (Takes takes : section.getTakes()) {
-            takesRepository.addTakes(takes.getID(),
-                    takes.getCourse_id(),
-                    takes.getSec_id(),
-                    takes.getSemester(),
-                    takes.getYear(),
-                    takes.getComponent_grade(),
-                    takes.getFinal_exam_grade(),
+            String status = getStatus(takesRepository.findStudentInCourse(takes.getStudent_id(), section.getCourse().getCourse_id()));
+            System.out.println(status);
+            if (status.isEmpty()) {
+                return;
+            }
+            takes.setStatus(status);
+            takesRepository.addTakes(takes.getStudent_id(),
+                    takes.getSection_id(),
                     takes.getStatus());
+            takes.setID(findTakes(takes).getID());
         }
     }
 
     @Transactional
-    public void addOneTakes(String id, Section section) {
-        for (Takes takes : section.getTakes()) {
-            takesRepository.addTakes(takes.getID(),
-                    takes.getCourse_id(),
-                    takes.getSec_id(),
-                    takes.getSemester(),
-                    takes.getYear(),
-                    takes.getComponent_grade(),
-                    takes.getFinal_exam_grade(),
-                    takes.getStatus());
+    public void addOneTakes(Takes takes) {
+        System.out.println(takes.getStudent_id());
+        System.out.println(takes.getSection_id());
+        System.out.println(takes.getSection().getCourse().getCourse_id());
+        System.out.println(takes.getStatus());
+        List<Takes> takesList = takesRepository.findStudentInCourse(takes.getStudent_id(), takes.getSection().getCourse().getCourse_id());
+        String status = getStatus(takesList);
+        if (status.isEmpty()) {
+            return;
         }
+        takes.setStatus(status);
+        System.out.println(takes.getStudent_id());
+        System.out.println(takes.getSection_id());
+        System.out.println(takes.getStatus());
+        takesRepository.addTakes(takes.getStudent_id(),
+                takes.getSection_id(),
+                takes.getStatus());
+        takes.setID(findTakes(takes).getID());
+        System.out.println("In add1takes: " + takes.getID());
+    }
+
+    public String getStatus(Takes takes){
+        List<Takes> takesList = takesRepository.findStudentInCourse(takes.getStudent_id(), takes.getSection().getCourse().getCourse_id());
+        return getStatus(takesList);
+    }
+
+    private String getStatus(List<Takes> takesList) {
+        if (takesList.isEmpty()) {
+            return "Học lần đầu";
+        }
+        System.out.println("Here is get status :)))");
+        System.out.println(Arrays.deepToString(new List[]{takesList}));
+        Takes lastTake = takesList.get(takesList.size() - 1);
+        double finalGrade = gradeService.calculateFinalGrade(lastTake);
+        System.out.println(finalGrade);
+        if (finalGrade < 4) {
+            return "Học lại";
+        }
+        if (finalGrade < 5.5) {
+            return "Học cải thiện";
+        }
+        return "";
+    }
+
+    public Takes getStudentInfoInSection(String studentId, Section section) {
+        Takes takes = takesRepository.findStudentInSection(Integer.parseInt(studentId), section.getID());
+        if (takes != null) takes.setFinal_grade(gradeService.calculateFinalGrade(takes));
+        return takes;
+    }
+
+    public List<Takes> getStudentInfoInCourse(String studentId, Section section) {
+        List<Takes> takesList = takesRepository.findStudentInCourse(Integer.parseInt(studentId), section.getCourse_id());
+        if (takesList != null)
+            for (Takes takes : takesList) {
+                takes.setFinal_grade(gradeService.calculateFinalGrade(takes));
+            }
+        return takesList;
+    }
+
+    List<Takes> getSectionsForStudent(int studentId){
+        return takesRepository.getSectionsForStudent(studentId);
     }
 
     @Transactional
-    public void updateStudentGrade(Takes takes) {
-//        System.out.println(takes.getID());
-//        System.out.println(takes.getCourse_id());
-//        System.out.println(takes.getSec_id());
-//        System.out.println(takes.getSemester());
-//        System.out.println(takes.getYear());
-//        System.out.println(takes.getComponent_grade());
-//        System.out.println(takes.getFinal_exam_grade());
-        takesRepository.updateStudentGrade(takes.getID(), takes.getCourse_id(), takes.getSec_id(), takes.getSemester(), takes.getYear(), takes.getComponent_grade(), takes
-                .getFinal_exam_grade());
+    public void deleteStudentInSection(int studentId, int sectionId){
+        takesRepository.deleteStudentInSection(studentId, sectionId);
     }
 }

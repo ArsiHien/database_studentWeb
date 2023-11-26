@@ -26,17 +26,20 @@
     <input type="text" th:field="*{advisor}" class="form-control">
     <span th:if="${#fields.hasErrors('advisor')}" th:errors="*{advisor}"></span>
     <br>
-    <label class="form-label">Tải danh sách sinh viên</label>
+    <label class="form-label">Tải danh sách sinh viên (Theo định dạng sau)</label>
+    <img src="https://i.imgur.com/LnvgzUE.png" class="img-fluid" style="max-width: 300px;">
+    <br>
     <input type="file" accept=".xlsx, .xls" name="file" class="form-control">
     <br>
     <div th:if="${alertMessage}" class="alert alert-info">
         <span th:text="${alertMessage}"></span>
     </div>
-    <input type="submit" value="Add Classes" class="btn btn-primary">
-    <input type="reset" value="Reset" class="btn btn-success">
+    <input type="submit" value="Thêm lớp" class="btn btn-primary">
+    <input type="reset" value="Tạo lại" class="btn btn-success">
 
 </form>
 
+<br>
 <a href="/" class="btn btn-success"><i class="bi bi-house"></i></a>
 
 </body>
