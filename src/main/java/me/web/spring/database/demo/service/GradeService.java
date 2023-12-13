@@ -18,17 +18,11 @@ public class GradeService {
 
     @Transactional
     public void addGrade(Grade grade) {
-        System.out.println(grade.getValue());
-        System.out.println(grade.getGrade_type_id());
-        System.out.println(grade.getTakes_id());
         gradeRepository.addGrade(grade.getValue(), grade.getGrade_type_id(), grade.getTakes_id());
     }
 
     @Transactional
     public void addTakesGrade(Takes takes) {
-        System.out.println("In addTakesGrade: " + takes.getID());
-        System.out.println("%".repeat(20));
-        System.out.println(takes.getGrades().size());
         for(Grade grade : takes.getGrades()){
             grade.setTakes_id(takes.getID());
             addGrade(grade);

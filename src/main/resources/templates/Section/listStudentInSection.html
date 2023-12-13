@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Section Grades</title>
+    <title>Danh sách sinh viên</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
     <!-- CSS -->
@@ -118,10 +118,10 @@
         <div class="form-group">
             <label for="studentType">Kết quả tổng kết</label>
             <select class="form-control" id="studentType" name="studentType">
-                <option value="all">Tất cả</option>
-                <option value="excellent">A+</option>
-                <option value="good">B trở lên</option>
-                <option value="poor">Trượt môn</option>
+                <option value="all" th:selected="${studentType == 'all'}">Tất cả</option>
+                <option value="excellent" th:selected="${studentType == 'excellent'}">A+</option>
+                <option value="good" th:selected="${studentType == 'good'}">B trở lên</option>
+                <option value="poor" th:selected="${studentType == 'poor'}">Trượt môn</option>
             </select>
         </div>
         <button type="submit" class="btn btn-primary">Submit</button>
@@ -133,6 +133,7 @@
     <table class="table table-bordered">
         <thead class="table-primary">
         <tr>
+            <th>STT</th>
             <th>Mã sinh viên</th>
             <th th:replace="~{Section/sorting :: sorting('name', 'Họ tên')}">Họ tên</th>
             <th>Lớp quản lý</th>
@@ -150,7 +151,8 @@
 <div class="tbl-content">
     <table class="table table-bordered table-hover">
         <tbody>
-        <tr th:each="takes : ${takesList}">
+        <tr th:each="takes, index : ${takesList}">
+            <td th:text="${index.count}"></td>
             <td><span th:text="${takes.getStudent_id}"> Mã sinh viên </span></td>
             <td><span
                     th:text="${takes.getStudent.getLast_name + ' ' + takes.getStudent.getMiddle_name + ' ' + takes.getStudent.getFirst_name}"> Họ tên</span>

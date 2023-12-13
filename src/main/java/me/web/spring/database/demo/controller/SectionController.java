@@ -58,8 +58,6 @@ public class SectionController {
         Course course = courseService.getCourseById(courseId);
         model.addAttribute("section", section);
         model.addAttribute("course", course);
-        System.out.println(course);
-        System.out.println(section);
         return "Section/addSection";
     }
 
@@ -70,8 +68,6 @@ public class SectionController {
         Course course = courseService.getCourseById(courseId);
         section.setCourse(course);
         course.getSections().add(section);
-        System.out.println(section);
-        System.out.println("ADD CONTROLLER");
         if (file != null && !file.isEmpty()) {
             try (InputStream inputStream = file.getInputStream()) {
                 sectionService.processSectionFile(section, inputStream);
@@ -97,7 +93,6 @@ public class SectionController {
         Section section = sectionService.findSection(courseId, secId, semester, year);
 //        List<Takes> takesList = takesService.findTakesBySection(section);
         List<Takes> takesList = takesService.findTakesBySectionWithSorting(section, studentType, sort[0], sort[1]);
-        System.out.println(sort[0] +  " " + sort[1]);
         model.addAttribute("size", takesList.size());
         model.addAttribute("section", section);
         model.addAttribute("takesList", takesList);
@@ -112,14 +107,9 @@ public class SectionController {
     @ResponseBody
     public TakesDTO getOneStudentInSection(@RequestParam("studentId") int studentId,
                                            @RequestParam("sectionId") int sectionId) {
-        System.out.println("Here is get 1 takes");
         Takes takes = takesService.findStudentInSection(studentId, sectionId);
-        System.out.println("lmao");
-        System.out.println(takes.getStudent());
-        System.out.println(takes.getSection());
         List<GradeDTO> gradeDTOS = new ArrayList<>();
         for (Grade grade : takes.getGrades()) {
-            System.out.println(grade.getGradeType());
             gradeDTOS.add(new GradeDTO(grade.getID(), grade.getGrade_type_id(), grade.getTakes_id(), grade.getValue(), grade.getGradeType().getName()));
         }
 
@@ -144,10 +134,8 @@ public class SectionController {
 
     @GetMapping("/delete")
     public String deleteStudent(@RequestParam("studentId") int studentId, @RequestParam("sectionId") int sectionId){
-        System.out.println("Here is delete method");
         Section section = sectionService.findSection(sectionId);
         takesService.deleteStudentInSection(studentId, sectionId);
-        System.out.println(studentId + " " + sectionId);
         return "redirect:/v1/section/" + section.getCourse_id() + "/" +
                 section.getSec_id() + "/" +
                 section.getSemester() + "/" +
@@ -160,9 +148,6 @@ public class SectionController {
         Section section = sectionService.findSection(Integer.parseInt(sectionId));
         model.addAttribute("section", section);
         List<Integer> idList = studentService.listStudentId();
-        for (Integer i : idList) {
-            System.out.println(i);
-        }
         model.addAttribute("idList", idList);
         int numberOfGradeTypes = gradeTypeService.getNumberOfGradeTypesInSection(Integer.parseInt(sectionId));
         model.addAttribute("numberOfGradeTypes", numberOfGradeTypes);
@@ -173,7 +158,6 @@ public class SectionController {
     public String addStudentToSection(@RequestBody Takes takes) {
         takes.setSection(sectionService.findSection(takes.getSection_id()));
         takesService.addOneTakes(takes);
-        System.out.println("In sectionController: " + takes.getID());
         gradeService.addTakesGrade(takes);
         return "redirect:/v1/section/" +
                 takes.getSection().getCourse_id() + "/" +

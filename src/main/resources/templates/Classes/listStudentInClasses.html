@@ -26,6 +26,9 @@
             padding: 0;
         }
 
+
+
+
     </style>
 
     <!--js-->
@@ -97,6 +100,9 @@
     }
 });
 
+
+
+
     </script>
 </head>
 <body>
@@ -104,13 +110,13 @@
 <div class="container">
     <form th:action="@{/v1/class/listStudentInClasses}" method="get">
         <input type="hidden" name="className" th:value="${className}">
-        <div class="form-group  mb-3 row">
+        <div class="form-group mb-3 row">
             <label for="studentType" class="col-md-2 col-form-label">Chọn sinh viên</label>
             <select class="form-control col-md-4" id="studentType" name="studentType">
-                <option value="all">Tất cả</option>
-                <option value="excellent">Sinh viên xuất sắc</option>
-                <option value="good">Sinh viên giỏi</option>
-                <option value="poor">Sinh viên kém</option>
+                <option value="all" th:selected="${studentType == 'all'}">Tất cả</option>
+                <option value="excellent" th:selected="${studentType == 'excellent'}">Sinh viên xuất sắc</option>
+                <option value="good" th:selected="${studentType == 'good'}">Sinh viên giỏi</option>
+                <option value="poor" th:selected="${studentType == 'poor'}">Sinh viên kém</option>
             </select>
         </div>
         <div class="col-md-2">
@@ -124,6 +130,7 @@
 <div class="tbl-header">
     <table class="table table-bordered table-hover">
         <thead class="table-primary">
+        <th>STT</th>
         <th>Mã sinh viên</th>
         <th id="name-header" class="header-clickable">
             Họ tên
@@ -140,7 +147,8 @@
 <div class="tbl-content">
     <table class="table table-bordered table-hover">
         <tbody id="studentTableBody">
-        <tr th:each="student : ${studentListInClasses}">
+        <tr th:each="student, index : ${studentListInClasses}">
+            <td th:text="${index.count}"></td>
             <td><a class="link-offset-2 link-underline link-underline-opacity-0"
                    th:href="@{/v1/student/studentInfo(ID = ${student.getID()})}"
                    th:text="*{student.getID()}">Mã sinh viên</a></td>
@@ -155,6 +163,136 @@
         </tbody>
     </table>
 </div>
+
+<button id="showChartBtn" class="btn btn-primary">Xem thống kê</button>
+
+<div class="modal fade" id="chartModal" tabindex="-1" aria-labelledby="chartLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="chartLabel">Thống kê sinh viên</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="p-2">
+                <button id="swapChartBtn" class="btn btn-secondary btn-md" onclick="swapCharts()">
+                    <i class="bi bi-arrow-left-right"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="container">
+                    <div id="container" class="mx-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<script th:inline="javascript">
+    var currentChartType = 'column';
+
+    function swapCharts() {
+        if (currentChartType === 'column') {
+            createPieChart();
+            currentChartType = 'pie';
+        } else {
+            createColumnChart();
+            currentChartType = 'column';
+        }
+    }
+
+    function createColumnChart() {
+        Highcharts.chart('container', {
+            chart: {
+                type: 'column'
+            },
+            title: {
+                text: 'Phổ điểm'
+            },
+            xAxis: {
+                categories: [[${gpaKeySet}]],
+                crosshair: true
+            },
+            yAxis: {
+                min: 0,
+                max: 30,
+                title: {
+                    text: 'Số lượng'
+                }
+            },
+            tooltip: {
+                headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
+                pointFormat: '<tr><td style="padding:0"><b>{point.y:.1f}</b></td></tr>',
+                footerFormat: '</table>',
+                shared: true,
+                useHTML: true
+            },
+            plotOptions: {
+                column: {
+                    pointPadding: 0.2,
+                    borderWidth: 0
+                }
+            },
+            series: [{
+                name: 'Điểm',
+                data: [[${gpaValues}]]
+            }]
+        });
+    }
+
+    function createPieChart() {
+        var resultKeySet = /*[[${resultKeySet}]]*/ [];
+        var resultValues = /*[[${resultValues}]]*/ [];
+
+        var data = [];
+        resultKeySet.forEach(function(key, index) {
+            data.push({
+                name: key,
+                y: resultValues[index]
+            });
+        });
+        Highcharts.chart('container', {
+			chart : {
+				type : 'pie',
+				options3d : {
+					enabled : true,
+					alpha : 50,
+					beta : 0
+				}
+			},
+			title : {
+				text : 'Kết quả học tập'
+			},
+			tooltip : {
+				pointFormat : '{series.name}: <b>{point.percentage:.1f}%</b>'
+			},
+			plotOptions : {
+				pie : {
+					allowPointSelect : true,
+					cursor : 'pointer',
+					depth : 35,
+					dataLabels : {
+						enabled : true,
+						format : '{point.name}'
+					}
+				}
+			},
+			series : [ {
+				type : 'pie',
+				name : 'Ratio',
+				data : data
+			} ]
+		});
+    }
+
+    $(document).ready(function () {
+        $('#showChartBtn').click(function () {
+            createColumnChart(); // Initial chart type (you can change it to pie if needed)
+            $('#chartModal').modal('show');
+        });
+    });
+
+</script>
 
 <a href="/" class="btn btn-success"><i class="bi bi-house"></i></a>
 </body>

@@ -9,7 +9,6 @@ import me.web.spring.database.demo.repository.TakesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -89,7 +88,6 @@ public class TakesService {
     }
 
     public Takes findTakes(Takes takes){
-        System.out.println("in findTakes: " + takes.getStudent_id() + " " + takes.getSection_id());
         return takesRepository.findTakes(takes.getStudent_id(), takes.getSection_id());
     }
 
@@ -101,7 +99,6 @@ public class TakesService {
     public void addAllTakesInSection(Section section) {
         for (Takes takes : section.getTakes()) {
             String status = getStatus(takesRepository.findStudentInCourse(takes.getStudent_id(), section.getCourse().getCourse_id()));
-            System.out.println(status);
             if (status.isEmpty()) {
                 return;
             }
@@ -115,24 +112,16 @@ public class TakesService {
 
     @Transactional
     public void addOneTakes(Takes takes) {
-        System.out.println(takes.getStudent_id());
-        System.out.println(takes.getSection_id());
-        System.out.println(takes.getSection().getCourse().getCourse_id());
-        System.out.println(takes.getStatus());
         List<Takes> takesList = takesRepository.findStudentInCourse(takes.getStudent_id(), takes.getSection().getCourse().getCourse_id());
         String status = getStatus(takesList);
         if (status.isEmpty()) {
             return;
         }
         takes.setStatus(status);
-        System.out.println(takes.getStudent_id());
-        System.out.println(takes.getSection_id());
-        System.out.println(takes.getStatus());
         takesRepository.addTakes(takes.getStudent_id(),
                 takes.getSection_id(),
                 takes.getStatus());
         takes.setID(findTakes(takes).getID());
-        System.out.println("In add1takes: " + takes.getID());
     }
 
     public String getStatus(Takes takes){
@@ -144,11 +133,8 @@ public class TakesService {
         if (takesList.isEmpty()) {
             return "Học lần đầu";
         }
-        System.out.println("Here is get status :)))");
-        System.out.println(Arrays.deepToString(new List[]{takesList}));
         Takes lastTake = takesList.get(takesList.size() - 1);
         double finalGrade = gradeService.calculateFinalGrade(lastTake);
-        System.out.println(finalGrade);
         if (finalGrade < 4) {
             return "Học lại";
         }

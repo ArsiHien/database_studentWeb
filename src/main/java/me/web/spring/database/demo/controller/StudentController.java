@@ -76,7 +76,6 @@ public class StudentController {
         List<Takes> takesList = studentService.getStudentInfo(id);
         Student student = studentService.getStudentInfo(Integer.parseInt(id));
         model.addAttribute("student", student);
-        System.out.println("-".repeat(20));
         model.addAttribute("takesList", takesList);
         int rowCounter = 1;
         model.addAttribute("rowCounter", rowCounter);

@@ -32,6 +32,6 @@ public interface StudentRepository extends JpaRepository<Student, Integer> {
     @Query(nativeQuery = true)
     Student getStudentInfo(@Param("student_id") int studentId);
 
-    @Query(value = "SELECT * FROM student where class_name = :class_name", nativeQuery = true)
-    List<Student> listStudentInClassesHaveNotStudy(@Param("class_name") String className);
+//    @Query(value = "SELECT * FROM student where class_name = :class_name", nativeQuery = true)
+//    List<Student> listStudentInClassesHaveNotStudy(@Param("class_name") String className);
 }

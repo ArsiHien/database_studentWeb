@@ -9,8 +9,8 @@ import me.web.spring.database.demo.repository.TakesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Comparator;
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 
 @Service
 public class StudentService {
@@ -56,9 +56,9 @@ public class StudentService {
         return studentList;
     }
 
-    public List<Student> listStudentInClassesHaveNotStudy(String className){
-        return studentRepository.listStudentInClassesHaveNotStudy(className);
-    }
+//    public List<Student> listStudentInClassesHaveNotStudy(String className){
+//        return studentRepository.listStudentInClassesHaveNotStudy(className);
+//    }
 
     public List<Integer> listStudentId() {
         return studentRepository.listStudentId();
@@ -80,11 +80,7 @@ public class StudentService {
         return takesList;
     }
 
-    public List<Student> listStudentInClassesWithSorting(String className, String studentType, String sortField, String sortDirection) {
-        List<Student> studentList = listStudentInClasses(className, studentType);
-        if(studentList.isEmpty()){
-            return listStudentInClassesHaveNotStudy(className);
-        }
+    public List<Student> listStudentInClassesWithSorting(List<Student> studentList, String sortField, String sortDirection) {
         Comparator<Student> comparator = getStudentComparator(sortField, sortDirection);
         studentList.sort(comparator);
         return studentList;
@@ -101,5 +97,53 @@ public class StudentService {
             comparator = comparator.reversed();
         }
         return comparator;
+    }
+
+    public LinkedHashMap<Double, Integer> countGPA(List<Student> studentList) {
+        LinkedHashMap<Double, Integer> gpaCountMap = new LinkedHashMap<>();
+        for (BigDecimal gpa = BigDecimal.ZERO; gpa.compareTo(BigDecimal.valueOf(4.1)) < 0; gpa = gpa.add(BigDecimal.valueOf(0.1))) {
+            gpaCountMap.put(gpa.doubleValue(), 0);
+        }
+        for (Student student : studentList) {
+            double gpa = (double) Math.round(student.getGPA() * 10) / 10;
+
+            if (gpa >= 0.0 && gpa <= 4.0) {
+                gpaCountMap.put(gpa, gpaCountMap.get(gpa) + 1);
+            }
+        }
+        return gpaCountMap;
+    }
+
+    public Map<String, Double> countResult(List<Student> studentInClassesList) {
+        LinkedHashMap<String, Integer> resultCountMap = new LinkedHashMap<>();
+        resultCountMap.put("Xuất sắc", 0);
+        resultCountMap.put("Giỏi", 0);
+        resultCountMap.put("Khá", 0);
+        resultCountMap.put("Trung bình", 0);
+        resultCountMap.put("Yếu", 0);
+        for (Student student : studentInClassesList) {
+            if (student.getGPA() >= 3.6) {
+                resultCountMap.put("Xuất sắc", resultCountMap.get("Xuất sắc") + 1);
+            } else if (student.getGPA() >= 3.2) {
+                resultCountMap.put("Giỏi", resultCountMap.get("Giỏi") + 1);
+            } else if (student.getGPA() >= 2.5) {
+                resultCountMap.put("Khá", resultCountMap.get("Khá") + 1);
+            } else if (student.getGPA() >= 2.0) {
+                resultCountMap.put("Trung bình", resultCountMap.get("Trung bình") + 1);
+            } else {
+                resultCountMap.put("Yếu", resultCountMap.get("Yếu") + 1);
+            }
+        }
+        Map<String, Double> resultRatioMap = new HashMap<>();
+        int totalStudents = studentInClassesList.size();
+
+        for (Map.Entry<String, Integer> entry : resultCountMap.entrySet()) {
+            String category = entry.getKey();
+            int count = entry.getValue();
+            double ratio = (double) count * 100 / totalStudents;
+            resultRatioMap.put(category, ratio);
+        }
+
+        return resultRatioMap;
     }
 }
